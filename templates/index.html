@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SQL Checker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Проверка SQL Кода</h1>
+        <form method="POST">
+            <textarea name="text" placeholder="Вставь SQL Код..."></textarea><br>
+            <button type="submit">Проверить ошибки</button>
+        </form>
+        
+        {% if result %}
+            <h2>Результат:</h2>
+            {{ result|safe }}
+        {% endif %}
+    </div>
+</body>
+</html>
