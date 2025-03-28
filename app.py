@@ -1,8 +1,7 @@
 """Flask App Web Page Module"""
 
 from flask import Flask, render_template, request
-import pandas as pd
-
+from processing import check_code
 
 app = Flask(__name__)
 
@@ -11,9 +10,10 @@ app = Flask(__name__)
 def index():
     """Main App Page"""
     if request.method == 'POST':
-        # text = request.form['text']
 
-        df = pd.DataFrame([[1, 2, 3], ['a', 'b', 'c']], columns=[1, 2, 3])
+        text = request.form['text']
+
+        df = check_code(text)
 
         result_html = df.to_html(classes='table table-striped', index=False)
 
