@@ -1,45 +1,142 @@
 """Removing the comments from the sql code"""
 
-import re
 
-
-def divide_by_quotes(sql_code: str) -> list:
+def char_is_quote(char: str) -> bool:
     """
-    Splits the sql-code text by the quotes and returns the list with the elements
-    
-    The splitting goes with the PostgreSQL quotes <'>, but doesn't affect the <''> element. 
-    The quotes <'> shouldn't be dropped, they're returning into the next element after appearing. 
-    The returning list shouldn't include any empty elements as "".
+    Checks if the given character is a single quote <'>
 
-    EG: divide_by_quotes("SELECT 'John''s data', column FROM table WHERE name = 'O''Reilly'")
-        will return the list: ["SELECT ", "'John''s data'", 
-                                ", column FROM table WHERE name = ", "'O''Reilly'"]
-    
-    Args: 
-        sql_code (str): The PostgreSQL code that should be divided
+    Args:
+        char (str): A single character
 
     Returns:
-        list: The elems of the sql_code string divided by <'> quote 
+        bool: True if the character is a single quote, False otherwise
     """
-    pattern = re.compile(r"('(?:''|[^'])*')")
-    parts = pattern.split(sql_code)
-    return [elem for elem in parts if elem != ""]
+    return char == "'"
+
+
+def next_char_is_quote(
+        code_len: int,
+        sql_code: str, ix: int
+        ) -> bool:
+    """
+    Checks if the next character in the SQL code,
+    starting from the given index, is a single quote <'>
+    Two quotes indicates the escaping of the quote
+    like in the string: <'John''s'>
+
+    Args:
+        l (int): The length of the SQL code string
+        sql_code (str): The SQL code string
+        ix (int): The current index position in the string
+
+    Returns:
+        bool: True if the next character exists and is a single quote,
+            False otherwise
+    """
+    if ix + 1 < code_len and sql_code[ix + 1] == "'":
+        return True
+    return False
+
+
+def is_new_line(char: str) -> bool:
+    """
+    Checks if the char represents newline
+
+    Args:
+        char (str): A single character
+
+    Returns:
+        bool: True if the character is a newline, False otherwise
+    """
+    return char in '\n\r\f\v\u2028\u2029'
+
+
+def char_is_dash(char: str) -> bool:
+    """
+    Checks if the given character is a dash <->
+
+    Args:
+        char (str): A single character
+
+    Returns:
+        bool: True if the character is a dash, False otherwise
+    """
+    return char == "-"
+
+
+def next_char_is_dash(
+        code_len: int,
+        sql_code: str,
+        ix: int) -> bool:
+    """
+    Checks if the next character in the SQL code,
+    starting from the given index, is a dash <->.
+    The second dash is used to detect the beginning of a one-line comment <-->
+
+    Args:
+        l (int): The length of the SQL code string
+        sql_code (str): The SQL code string
+        ix (int): The current index position in the string.
+
+    Returns:
+        bool: True if the next character exists and is a dash, False otherwise
+    """
+    if ix + 1 < code_len and sql_code[ix + 1] == "-":
+        return True
+    return False
 
 
 def rm_oneliners(sql_code: str) -> str:
-    """Removes one-line comments from the sql code"""
+    """
+    Removes one-line comments from the sql code
 
-    # re-pattern will divide      
-    code_parts = divide_by_quotes(sql_code)
-    new_parts = []
+    Args:
+        sql_code (str): The SQL code in which we remove the one-line comments
 
-    for i, part in enumerate(code_parts):
-        # If the text in quotes, we add it without any cleaning
-        if i % 2 == 1:
-            new_parts.append(part)
-        else:
-            # --.* re-flag will clean the comment to the new line, 
-            #       so the code shouldn't be corrupted  
-            cleaned = re.sub(r'--.*', '', part)
-            new_parts.append(cleaned)
-    return ''.join(new_parts)
+    Returns:
+        str: Cleaned SQL code without one-liners
+    """
+
+    result = ''
+
+    is_in_quote = False
+    is_in_comment = False
+    is_in_escape = False
+
+    code_len = len(sql_code)
+
+    for ix, char in enumerate(sql_code):
+        if is_new_line(char) and not is_in_quote:
+            result += char
+            is_in_comment = False
+            continue
+        if is_in_comment:
+            continue
+        if char_is_dash(char
+                        ) and next_char_is_dash(code_len, sql_code, ix
+                                                ) and not is_in_quote:
+            is_in_comment = True
+            continue
+        if is_in_escape:
+            is_in_escape = False
+            result += char
+            continue
+        if char_is_quote(char
+                         ) and next_char_is_quote(code_len, sql_code, ix):
+            is_in_escape = True
+            result += char
+            continue
+        if char_is_quote(char):
+            if is_in_quote:
+                is_in_quote = False
+            else:
+                is_in_quote = True
+            result += char
+            continue
+        if is_in_quote:
+            result += char
+            continue
+
+        result += char
+
+    return result
