@@ -1,7 +1,7 @@
 """Flask App Web Page Module"""
 
 from flask import Flask, Response, request, send_from_directory
-from processing import check_code
+from result import get_final_df
 
 app = Flask(__name__)
 
@@ -18,7 +18,7 @@ def index():
 
         if text_input:
             try:
-                df = check_code(text_input)
+                df = get_final_df(text_input)
                 if df.empty:
                     table_html = '<p style="color:green;">В \
                         коде нет простых ошибок :)</p>'
